@@ -1,0 +1,15 @@
+{
+  "tenant_id": "local-tenant",
+  "cloud": "aws",
+  "account_identifier": "123456789012",
+  "trigger_mode": "completion",
+  "pipelines": ["glue"],
+  "aws": {
+    "cur_bucket": "REPLACE_WITH_YOUR_CUR_S3_BUCKET",
+    "cur_prefix": "REPLACE_WITH_KEY_PREFIX_WHERE_REPORTS_LAND/",
+    "cur_format": "Parquet",
+    "read_only_iam_role_arn": "arn:aws:iam::123456789012:role/DatapulseReadOnlyCur",
+    "region": "us-east-1",
+    "cloudwatch_log_group": ""
+  }
+}

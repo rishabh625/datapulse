@@ -1,0 +1,79 @@
+# Local stack: unified MCP server + ADK onboarding agent.
+#
+# CUR (Cost and Usage Report) location in the onboarding API maps to the S3 delivery target you
+# configured in AWS Billing > Cost & usage reports > your report > S3 bucket + Report path prefix.
+#   - aws.cur_bucket   → S3 bucket name (e.g. my-aws-billing-reports)
+#   - aws.cur_prefix   → object key prefix inside that bucket (e.g. cur/AWSAccountId/report-name/)
+#   - aws.cur_format   → e.g. Parquet or text/csv (must match what you export)
+#   - aws.read_only_iam_role_arn → role the datapulse agent would assume to read that prefix
+#
+# After: docker compose up --build
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mcpserver:
+    build: .
+    command: ["/usr/local/bin/mcpserver"]
+    env_file:
+      - .env
+    environment:
+      MCP_ADDR: ":8091"
+    ports:
+      - "8091:8091"
+
+  # ADK dev Web UI for conversational onboarding + trigger triage (Gemini).
+  onboarding-agent:
+    build: .
+    env_file:
+      - .env
+    command:
+      [
+        "/usr/local/bin/onboarding-agent",
+        "web",
+        "-port",
+        "8095",
+        "api",
+        "-webui_address",
+        "localhost:8095",
+        "webui",
+        "-api_server_address",
+        "http://localhost:8095/api",
+      ]
+    environment:
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.0-flash}
+      MCP_SERVER_URL: http://mcpserver:8091
+      CLOUDSQL_DSN: ${DOCKER_CLOUDSQL_DSN:-host=postgres port=5432 user=postgres password=postgres dbname=postgres sslmode=disable}
+    ports:
+      - "8095:8095"
+    depends_on:
+      mcpserver:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+  copilotkit-ui:
+    build: ./ui
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_COPILOT_RUNTIME_URL=http://onboarding-agent:8095/api
+    depends_on:
+      - onboarding-agent
+volumes:
+  postgres_data:

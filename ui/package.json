@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@copilotkit/react-core": "^1.56.3",
+    "@copilotkit/react-ui": "^1.56.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0"
+  }
+}
