@@ -12,7 +12,11 @@ import (
 func main() {
 	addr := os.Getenv("MCP_ADDR")
 	if addr == "" {
-		addr = ":8091"
+		if port := os.Getenv("PORT"); port != "" {
+			addr = ":" + port
+		} else {
+			addr = ":8091"
+		}
 	}
 
 	log.Printf("mcp server listening on %s", addr)

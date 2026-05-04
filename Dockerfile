@@ -11,3 +11,6 @@ RUN mkdir -p /out && \
 FROM alpine:3.21
 RUN apk add --no-cache ca-certificates tzdata
 COPY --from=build /out/mcpserver /out/onboarding-agent /usr/local/bin/
+
+EXPOSE 8080
+CMD ["/usr/local/bin/mcpserver"]
